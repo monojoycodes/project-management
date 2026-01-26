@@ -1,0 +1,22 @@
+{
+  "name": "backend-project",
+  "version": "1.0.0",
+  "description": "this is a project management tool for beginners",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "august": "node index.js"
+  },
+  "keywords": [
+    "backend",
+    "project",
+    "management",
+    "project",
+    "databases"
+  ],
+  "author": "monojoycodes",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
+}
