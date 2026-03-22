@@ -1,6 +1,7 @@
 import mongoose,  { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
 
 const schema = Schema();
 
@@ -17,7 +18,7 @@ const userSchema = new Schema(
             }
     },
     email: {
-        type: Sntrig,
+        type: String,
         required: true,
         unique: true,
         lowercase: true
@@ -42,7 +43,7 @@ const userSchema = new Schema(
     },
     isEmailVerified: {
         type: Boolean,
-        default: False
+        default: false
     },
     //set up tokens
     refreshToken: {
@@ -63,15 +64,14 @@ const userSchema = new Schema(
 })
 
 //set up a pre-hook to HASH your passwords:
-userSchema.pre("save", async function(next){ //we are writing "function" to be able to use `next`*
-    if (!this.isModified("password")) return next();
+userSchema.pre("save", async function() { //removed next parameter for async functions
+    if (!this.isModified("password")) return;
     this.password = await bcrypt.hash(this.password, 10); //hashing rounds
-    next();
 })
 
-userSchema.methods.isPasswordCorrect(async function(password) {
+userSchema.methods.isPasswordCorrect = async function(password) {
     return await bcrypt.compare(password, this.password); //True or False
-}); //check if the password entered by the user is correct!
+}; //check if the password entered by the user is correct!
 
 //let us now generate the jwt access tokens!
 userSchema.methods.generateAccessToken = function() {
@@ -89,16 +89,29 @@ userSchema.methods.generateAccessToken = function() {
 }
 
 //now generate the refresh token using JWT!
-userSchema.models.generateRefreshToken = function() {
+userSchema.methods.generateRefreshToken = function() {
    return jwt.sign(
         {
             _id: this.id
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
     )
 }
 
+userSchema.methods.generateTemporaryToken = function() {
+    const unHashedToken = crypto.randomBytes(20).toString("hex")
 
-export const user = mongoose.model("Users", userSchema);
+    const hashedToken = crypto
+        .createHash("sha256")
+        .update(unHashedToken)
+        .digest("hex")
+
+    const tokenExpiry = Date.now() + (20*60*1000) //20 mins
+    return {unHashedToken, hashedToken, tokenExpiry}
+}
+
+
+export const User = mongoose.model("Users", userSchema);

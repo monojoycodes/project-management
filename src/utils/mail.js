@@ -11,14 +11,24 @@ const mailGenerator = new Mailgen({
 });
 
 // Configure the nodemailer transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
+const smtpConfig = {
+  host: process.env.SMTP_HOST || "sandbox.smtp.mailtrap.io",
+  port: parseInt(process.env.SMTP_PORT || "2525", 10),
+  secure: false, // port 2525 doesn't use TLS
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD
+    user: process.env.SMTP_USER || "e78e1aaf342aca",
+    pass: process.env.SMTP_PASSWORD || "66bbc92699cb50"
   }
+};
+
+const transporter = nodemailer.createTransport(smtpConfig);
+
+// Debug: Log the configuration
+console.log("📧 Nodemailer Config:", {
+  host: smtpConfig.host,
+  port: smtpConfig.port,
+  secure: smtpConfig.secure,
+  user: smtpConfig.auth.user ? "***" : "undefined"
 });
 
 // Verify transporter connection
@@ -34,17 +44,24 @@ transporter.verify((error, success) => {
 export const sendEmail = async (to, subject, htmlContent) => {
   try {
     const mailOptions = {
-      from: process.env.SMTP_FROM_EMAIL,
+      from: process.env.SMTP_FROM_EMAIL || "noreply@yourapp.com",
       to,
       subject,
       html: htmlContent
     };
 
+    console.log("📮 Sending email:", {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      htmlLength: htmlContent?.length
+    });
+
     const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully:", info.response);
+    console.log("✅ Email sent successfully:", info.response);
     return info;
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("❌ Error sending email:", error.message);
     throw error;
   }
 };
